@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Instrument Service</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: #f5f5f5; color: #222;
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    }
+    .card {
+      max-width: 860px; margin: 24px auto; background: #fff;
+      border: 1px solid #e3e3e3; border-radius: 10px; padding: 20px 20px 16px;
+    }
+    h1 { margin: 0 0 6px; font-size: 22px; font-weight: 600; }
+    .sub { margin: 0; color: #555; font-size: 14px; }
+    hr { border: 0; border-top: 1px solid #ddd; margin: 20px 0 24px; }
+    h2 { margin: 0 0 14px; font-size: 17px; font-weight: 600; }
+    table {
+      width: 100%; border-collapse: collapse;
+      border: 1px solid #ddd; margin-bottom: 18px;
+    }
+    th, td { text-align: left; padding: 18px 10px; font-size: 14px; }
+    th { background: #f0f0f0; font-weight: 600; padding: 12px 10px; }
+    td { border-top: 1px solid #ddd; }
+    .symbol { color: #1a5fb4; }
+    .lookup { display: flex; gap: 10px; margin-bottom: 14px; }
+    input {
+      flex: 1; padding: 11px 12px; font-size: 15px;
+      border: 1px solid #bbb; border-radius: 3px; font-family: inherit;
+    }
+    input:focus { outline: 2px solid #1a5fb4; outline-offset: -1px; }
+    button {
+      padding: 0 18px; font-size: 15px; font-family: inherit;
+      background: #eee; border: 1px solid #bbb; border-radius: 3px; cursor: pointer;
+    }
+    button:hover { background: #e2e2e2; }
+    .label { margin: 0 0 10px; font-size: 14px; color: #444; }
+    pre {
+      margin: 0; padding: 16px; min-height: 60px;
+      background: #f3f3f3; border: 1px solid #ddd; border-radius: 3px;
+      font-family: "Segoe UI", system-ui, sans-serif; font-size: 15px; line-height: 1.8;
+      white-space: pre-wrap;
+    }
+    .error { color: #c62828; }
+    footer { margin-top: 12px; font-size: 12px; color: #555; }
+  </style>
+</head>
+<body>
+<div class="card">
+  <h1>Instrument Service</h1>
+  <p class="sub">A simple web interface for the instrument reference API.</p>
+  <hr>
+
+  <h2>All Instruments</h2>
+  <table>
+    <thead><tr><th>ID</th><th>Symbol</th><th>Name</th><th>Status</th></tr></thead>
+    <tbody id="rows"><tr><td colspan="4">Loading...</td></tr></tbody>
+  </table>
+
+  <h2>Look up instrument by ID</h2>
+  <div class="lookup">
+    <input id="idInput" type="number" min="1" placeholder="Enter an ID">
+    <button id="lookupBtn">Get Instrument</button>
+  </div>
+
+  <p class="label">Response</p>
+  <pre id="result"></pre>
+
+  <footer>API endpoint: GET /instruments</footer>
+</div>
+
+<script>
+  const rows = document.getElementById("rows");
+  const out = document.getElementById("result");
+
+  async function loadInstruments() {
+    try {
+      const res = await fetch("/instruments");
+      const data = await res.json();
+      rows.innerHTML = data.map(i => `
+        <tr>
+          <td>${i.id}</td>
+          <td class="symbol">${i.symbol}</td>
+          <td>${i.name}</td>
+          <td>${i.status}</td>
+        </tr>`).join("");
+    } catch (err) {
+      rows.innerHTML = `<tr><td colspan="4" class="error">Could not reach the API.</td></tr>`;
+    }
+  }
+
+  async function lookup() {
+    const id = document.getElementById("idInput").value;
+    if (!id) return;
+    try {
+      const res = await fetch(`/instruments/${id}`);
+      if (res.ok) {
+        out.className = "";
+        out.textContent = JSON.stringify(await res.json(), null, 2);
+      } else {
+        out.className = "error";
+        out.textContent = `${res.status}: Instrument ${id} not found`;
+      }
+    } catch (err) {
+      out.className = "error";
+      out.textContent = "Could not reach the API.";
+    }
+  }
+
+  document.getElementById("lookupBtn").addEventListener("click", lookup);
+  document.getElementById("idInput").addEventListener("keydown", e => {
+    if (e.key === "Enter") lookup();
+  });
+
+  loadInstruments();
+</script>
+</body>
+</html>
